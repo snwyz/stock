@@ -9,7 +9,7 @@ import schedule
 import hmac
 import hashlib
 import base64
-
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 # option = webdriver.ChromeOptions()
 # option.add_argument("headless")
@@ -81,7 +81,7 @@ def get_realtime_money_flow():
         set_index('time').replace('-', np.nan).dropna().astype(float)
 
     current_time = time.strftime("%H:%M", time.localtime())
-    if current_time > '15:00':
+    if current_time != '15:00':
         current_time = '15:00'
     nouth_message = '北向资金实时流入：' + '\n' + '总流入：' + str(df.loc[current_time, 's2n'] / 10000) + '亿，' + '流向沪市：' \
                     + str(df.loc[current_time, 'hk2sh'] / 10000) + '亿，' + '\n' + '流向深市：' + str(df.loc[current_time, 'hk2sz'] / 10000) + '亿'
@@ -105,10 +105,11 @@ def postToDing(content):
     }
     ding_url = 'https://oapi.dingtalk.com/robot/send?access_token=a6b488dc3f9881d3344f902a38fc78eeb74467b10dabbd0a16273eb3cb13fa97' + \
                 '&timestamp=' + str(round(time.time() * 1000))+'&sign=' + sign
-    reponse = requests.post(url=ding_url, json=json_data)
+    requests.post(url=ding_url, json=json_data)
     print('报警信息发送成功。')
 
 schedule.every(1).minutes.do(get_realtime_money_flow)    # 每隔1分钟执行一次任务
 schedule.every(5).minutes.do(getBoard)    # 每隔5分钟执行一次任务
 
-schedule.run_pending()  # run_pending运行所有可以运行的任务
+while True: 
+    schedule.run_pending()  # run_pending运行所有可以运行的任务
