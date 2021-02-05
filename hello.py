@@ -1,5 +1,3 @@
-from selenium import webdriver
-from time import sleep
 import requests
 import datetime as dt
 import time
@@ -9,27 +7,15 @@ import schedule
 import hmac
 import hashlib
 import base64
+import akshare as ak
 # from apscheduler.schedulers.blocking import BlockingScheduler
-
-# option = webdriver.ChromeOptions()
-# option.add_argument("headless")
-# driver = webdriver.Chrome(options=option)
-#
-# driver.get('http://data.eastmoney.com/hsgtcg/default.html')
-#
-# north = driver.find_element_by_class_name('hgt_drjlr').text
-# # dr.find_element('id', 'kw').send_keys('博客园 韩志超')
-# # dr.find_element('id', 'su').click()
-# print('北向资金流入' + north)
-# # sleep(3)
-# driver.quit()
 # 大盘实时数据
 # 小熊api https://api.doctorxiong.club/v1/stock/board
 
 def getSign():
     timestamp = str(round(time.time() * 1000))
-    # app_secret = 'SEC7ba3d34a066710739ea97a088ba30e0ae7cf6e3e82721451d54e3024fe501564'
-    app_secret = 'SECcf2a5f2524eea3527be0163eb36de8e1cfb2ecc6248890faa2c311ed32f456bb'
+    # app_secret = 'SEC7ba3d34a066710739ea97a088ba30e0ae7cf6e3e82721451d54e3024fe501564'  # 测试群
+    app_secret = 'SECcf2a5f2524eea3527be0163eb36de8e1cfb2ecc6248890faa2c311ed32f456bb'    # 正式群
 
     app_secret_enc = app_secret.encode('utf-8')
     string_to_sign = '{}\n{}'.format(timestamp, app_secret)
@@ -89,6 +75,38 @@ def get_realtime_money_flow():
                     + str('%.2f' % (df.loc[current_time, 'hk2sh'] / 10000)) + '亿，' + '\n' + '流向深市：' + str('%.2f' % (df.loc[current_time, 'hk2sz'] / 10000)) + '亿'
     postToDing(nouth_message)
 
+
+# 个股资金实时流入前10
+def get_stock_individual_fund_flow_rank():
+    stock_individual_fund_flow_rank_df = ak.stock_individual_fund_flow_rank(indicator="今日").head(10)
+
+    stock_individual_fund_flow_rank_message = '个股实时资金流入排行：' + '\n'
+    for index, row in stock_individual_fund_flow_rank_df.iterrows():
+        message = row["名称"] + '（' + str(row["涨跌幅"]) + '%）' + '：' \
+                  + '净流入-净额:' + str('%.2f' % (row["主力净流入-净额"]/100000000)) + '亿，' + "净流入-净占比：" \
+                  + str(row["主力净流入-净占比"]) + '%' + "超大单-净占比" + str(row["超大单净流入-净占比"]) + '%' \
+                  + "大单-净占比" + str(row["大单净流入-净占比"]) + '%' \
+                  + "中单-净占比" + str(row["中单净流入-净占比"]) + "小单-净占比" + str(row["小单净流入-净占比"]) + '\n'
+        stock_individual_fund_flow_rank_message = stock_individual_fund_flow_rank_message + message
+
+    postToDing(stock_individual_fund_flow_rank_message)
+
+# 行业资金实时流入前10
+def get_stock_sector_fund_flow_rank():
+    stock_sector_fund_flow_rank_df = ak.stock_sector_fund_flow_rank(indicator="今日", sector_type="行业资金流").head(20)
+
+    print(stock_sector_fund_flow_rank_df)
+    stock_sector_fund_flow_rank_df_message = '行业板块实时资金流入排行：' + '\n'
+    for index, row in stock_sector_fund_flow_rank_df.iterrows():
+        message = row["名称"] + '（' + str(row["今日涨跌幅"]) + '%）' + '：' \
+                  + '净流入:' + str('%.2f' % (row["今日主力净流入-净额"]/100000000)) + '亿，' + "净流入-占比：" \
+                  + str(row["今日主力净流入-净占比"]) + '%' + "超大单-净占比" + str(row["今日超大单净流入-净占比"]) + '%' + "大单-净占比" + str(row["今日大单净流入-净占比"]) + '%' \
+                  + "中单-净占比" + str(row["今日中单净流入-净占比"]) + "小单-净占比" + str(row["今日小单净流入-净占比"]) \
+                  + '\n' + '（' + "流入最大股：" + str(row["今日主力净流入最大股"]) + '）' + '\n\n'
+        stock_sector_fund_flow_rank_df_message = stock_sector_fund_flow_rank_df_message + message
+
+    postToDing(stock_sector_fund_flow_rank_df_message)
+
 # 发送到钉钉
 def postToDing(content):
 
@@ -105,13 +123,18 @@ def postToDing(content):
             "isAtAll": False  # 是否要@某位用户
         }
     }
-    ding_url = 'https://oapi.dingtalk.com/robot/send?access_token=399aab2aeca9a235a1667a76eb2d202957685b3a47eaa6c3c0e089ba44860492' + \
-                '&timestamp=' + str(round(time.time() * 1000))+'&sign=' + sign
-    requests.post(url=ding_url, json=json_data)
-    print('报警信息发送成功。')
+    # ding_url = 'https://oapi.dingtalk.com/robot/send?access_token=a6b488dc3f9881d3344f902a38fc78eeb74467b10dabbd0a16273eb3cb13fa97' + \
+    #             '&timestamp=' + str(round(time.time() * 1000))+'&sign=' + sign  # 测试群
 
-schedule.every(30).minutes.do(get_realtime_money_flow)    # 每隔1分钟执行一次任务
-schedule.every(5).minutes.do(getBoard)    # 每隔5分钟执行一次任务
+    ding_url = 'https://oapi.dingtalk.com/robot/send?access_token=399aab2aeca9a235a1667a76eb2d202957685b3a47eaa6c3c0e089ba44860492' + \
+               '&timestamp=' + str(round(time.time() * 1000)) + '&sign=' + sign   # 正式群
+    requests.post(url=ding_url, json=json_data)
+    print('信息发送成功。')
+
+schedule.every(5).minutes.do(get_realtime_money_flow)    # 每隔1分钟执行一次任务
+schedule.every(30).minutes.do(getBoard)    # 每隔5分钟执行一次任务
+schedule.every(3).minutes.do(get_stock_individual_fund_flow_rank)    # 每隔3分钟执行一次任务
+schedule.every(1).minutes.do(get_stock_sector_fund_flow_rank)    # 每隔1分钟执行一次任务
 
 while True: 
     schedule.run_pending()  # run_pending运行所有可以运行的任务
