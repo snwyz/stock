@@ -133,8 +133,8 @@ def postToDing(content):
 
 schedule.every(5).minutes.do(get_realtime_money_flow)    # 每隔1分钟执行一次任务
 schedule.every(30).minutes.do(getBoard)    # 每隔5分钟执行一次任务
-schedule.every(3).minutes.do(get_stock_individual_fund_flow_rank)    # 每隔3分钟执行一次任务
-schedule.every(1).minutes.do(get_stock_sector_fund_flow_rank)    # 每隔1分钟执行一次任务
+schedule.every(8).minutes.do(get_stock_individual_fund_flow_rank)    # 每隔3分钟执行一次任务
+schedule.every(15).minutes.do(get_stock_sector_fund_flow_rank)    # 每隔1分钟执行一次任务
 
 while True: 
     schedule.run_pending()  # run_pending运行所有可以运行的任务
