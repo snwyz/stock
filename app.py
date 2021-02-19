@@ -63,6 +63,25 @@ def get_money_current():
     resu = {'code': 200, 'data': {'list': result, 'current': current}, 'message': '成功'}
     return resu
 
+#北向资金持股排行
+
+
+@app.route('/get_stock_em_hold_stock_df')
+def get_stock_em_hold_stock_df():
+    stock_em_hold_stock_df = ak.stock_em_hsgt_stock_statistics(symbol="北向持股", start_date="20210218", end_date="20210218").head(50)
+    print(stock_em_hold_stock_df)
+    result = []
+    for index, row in stock_em_hold_stock_df.iterrows():
+        result.append({
+            'symbol': row["股票代码"],
+            'name': row["股票简称"],
+            'market_value': round(row["持股市值"] / 100000000),
+            'market_percent': row["持股数量占发行股百分比"]
+        })
+    # return result
+    resu = {'code': 200, 'data': result, 'message': '成功'}
+    return json.dumps(resu, ensure_ascii=False)
+
 
 # 个股资金实时流入前10
 @app.route('/get_money_stock')
