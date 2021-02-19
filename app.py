@@ -6,42 +6,30 @@ import numpy as np
 import akshare as ak
 
 from flask import Flask
-
-# from apscheduler.schedulers.blocking import BlockingScheduler
-# 大盘实时数据
-# 小熊api https://api.doctorxiong.club/v1/stock/board
+from pandas.io import json
 
 app = Flask(__name__)
 
+# 大盘实时数据
 
-@app.route('/get_board')
-def get_board():
-    get_board_url = 'https://api.doctorxiong.club/v1/stock/board?token=W9hJ3pzvKU'
-    get_hot_stock_url = 'https://api.doctorxiong.club/v1/stock/hot?token=W9hJ3pzvKU'
 
-    board = requests.get(get_board_url)
-    hot_stock = requests.get(get_hot_stock_url)
-
-    board_list = board.json()['data']
-    hot_stock_list = hot_stock.json()['data']
-
-    board_message = '大盘实时数据：' + '\n'
-    for board_item in board_list:
-        board_item['changePercent'] = board_item['changePercent'] + '%'
-        board_item['turnover'] = str('%.2f' % (int(board_item['turnover']) / 10000)) + '亿'
-        message = board_item['name'] + '（' + board_item['changePercent'] + '）' + '：' \
-                  + board_item['price'] + '，' + "成交金额：" + board_item['turnover'] + '\n'
-        board_message = board_message + message
-
-    hot_stock_message = '个股成交量排行：' + '\n'
-    for hot_stock_item in hot_stock_list:
-        hot_stock_item['changePercent'] = hot_stock_item['changePercent'] + '%'
-        hot_stock_item['turnover'] = str('%.2f' % (int(hot_stock_item['turnover']) / 10000)) + '亿'
-        message = hot_stock_item['name'] + '（' + hot_stock_item['changePercent'] + '）' + '：' \
-                  + hot_stock_item['price'] + '，' + "成交金额：" + hot_stock_item['turnover'] + '\n'
-        hot_stock_message = hot_stock_message + message
-        content = board_message + '\n' + hot_stock_message
-    return content
+@app.route('/get_stock_df')
+def get_stock_df():
+    stock_df = ak.stock_zh_index_spot()
+    stock_df_filter = stock_df[(stock_df['代码'] == 'sh000001') | (stock_df['代码'] == 'sz399001') | (stock_df['代码'] == 'sz399006')]
+    result = []
+    for index, row in stock_df_filter.iterrows():
+        result.append({
+            'symbol': row["代码"],
+            'name': row["名称"],
+            'current_price': round(row["最新价"], 2),
+            'price_change': round(row["涨跌额"], 2),
+            'percent_change': round(row["涨跌幅"], 2),
+            'turnover': round((row["成交额"]/100000000), 2)
+        })
+    # return result
+    resu = {'code': 200, 'data': result, 'message': '成功'}
+    return json.dumps(resu, ensure_ascii=False)
 # 北向资金
 
 
@@ -98,4 +86,4 @@ def get_stock_sector_fund_flow_rank():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8088)
+    app.run(host='0.0.0.0', port=5000)
