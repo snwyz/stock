@@ -33,10 +33,8 @@ def get_stock_df():
 # 北向资金
 
 
-@app.route('/get_realtime_money_flow')
-def get_realtime_money_flow():
-    current_time = time.strftime("%-H:%M", time.localtime())
-
+@app.route('/get_money_current')
+def get_money_current():
     realtime_flow_url = 'http://push2.eastmoney.com/api/qt/kamt.rtmin/get?fields1=f1,f3&fields2=f51,f52,f54,f56'
     ret = requests.get(realtime_flow_url)
 
@@ -44,28 +42,39 @@ def get_realtime_money_flow():
         raise Exception('请求实时资金流向失败！')
 
     data = ret.json()['data']
-
     _date = dt.datetime(dt.datetime.today().year, *map(int, data['s2nDate'].split('-')))
 
-    df = pd.DataFrame(map(lambda v: v.split(','), data['s2n']), columns=['time', 'hk2sh', 'hk2sz', 's2n']).\
-        set_index('time').replace('-', np.nan).dropna().astype(float)
-
-    nouth_message = '北向资金实时流入：' + '\n' + '总流入：' + str('%.2f' % (df.loc[current_time, 's2n'] / 10000)) + '亿，' + '流向沪市：' \
-                    + str('%.2f' % (df.loc[current_time, 'hk2sh'] / 10000)) + '亿，' + '\n' + '流向深市：' + str('%.2f' % (df.loc[current_time, 'hk2sz'] / 10000)) + '亿'
-    return nouth_message
+    df = pd.DataFrame(map(lambda v: v.split(','), data['s2n']), columns=['time', 'hk2sh', 'hk2sz', 's2n'])
+    result = []
+    for index, row in df.iterrows():
+        if row["s2n"] != '-':
+            current = {
+                'date': row["time"],
+                'totalmoney': row["s2n"],
+                'sh_money': row["hk2sh"],
+                'sz_money': row["hk2sz"],
+            }
+        result.append({
+            'date': row["time"],
+            'totalmoney': row["s2n"],
+            'sh_money': row["hk2sh"],
+            'sz_money': row["hk2sz"],
+        })
+    resu = {'code': 200, 'data': {'list': result, 'current': current}, 'message': '成功'}
+    return resu
 
 
 # 个股资金实时流入前10
-@app.route('/get_stock_individual_fund_flow_rank')
-def get_stock_individual_fund_flow_rank():
-    stock_individual_fund_flow_rank_df = ak.stock_individual_fund_flow_rank(indicator="今日").head(10)
+@app.route('/get_money_stock')
+def get_money_stock():
+    get_money_stock = ak.stock_individual_fund_flow_rank(indicator="今日").head(10)
 
-    stock_individual_fund_flow_rank_message = '个股实时资金流入排行：' + '\n\n'
-    for index, row in stock_individual_fund_flow_rank_df.iterrows():
+    get_money_stock_message = '个股实时资金流入排行：' + '\n\n'
+    for index, row in get_money_stock.iterrows():
         message = row["名称"] + '（' + str(row["涨跌幅"]) + '%）' + '：' \
                   + '净流入-净额:' + str('%.2f' % (row["主力净流入-净额"]/100000000)) + '亿，' + '\n'
-        stock_individual_fund_flow_rank_message = stock_individual_fund_flow_rank_message + message
-    return stock_individual_fund_flow_rank_message
+        get_money_stock_message = get_money_stock_message + message
+    return get_money_stock_message
 
 # 行业资金实时流入前10
 
