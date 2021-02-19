@@ -50,15 +50,15 @@ def get_money_current():
         if row["s2n"] != '-':
             current = {
                 'date': row["time"],
-                'totalmoney': round((row["s2n"]/10000), 2),
-                'sh_money': round((row["hk2sh"]/10000), 2),
-                'sz_money': round((row["hk2sz"]/10000), 2),
+                'totalmoney': round(float(row["s2n"])/10000, 2),
+                'sh_money': round(float(row["hk2sh"])/10000, 2),
+                'sz_money': round(float(row["hk2sz"])/10000, 2),
             }
         result.append({
             'date': row["time"],
-            'totalmoney': round((row["s2n"] / 10000), 2),
-            'sh_money': round((row["hk2sh"] / 10000), 2),
-            'sz_money': round((row["hk2sz"] / 10000), 2),
+            'totalmoney': row["s2n"] if row["s2n"] == '-' else round(float(row["s2n"]) / 10000, 2),
+            'sh_money': row["hk2sh"] if row["hk2sh"] == '-' else round(float(row["hk2sh"]) / 10000, 2),
+            'sz_money': row["hk2sz"] if row["hk2sz"] == '-' else round(float(row["hk2sz"]) / 10000, 2),
         })
     resu = {'code': 200, 'data': {'list': result, 'current': current}, 'message': '成功'}
     return resu
