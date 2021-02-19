@@ -69,8 +69,9 @@ def get_money_current():
 @app.route('/get_stock_em_hold_stock_df')
 def get_stock_em_hold_stock_df():
     stock_em_hold_stock_df = ak.stock_em_hsgt_stock_statistics(symbol="北向持股", start_date="20210218", end_date="20210218").head(50)
-    print(stock_em_hold_stock_df)
     result = []
+    current_time = time.strftime("%Y-%m-%d", time.localtime())
+    print(current_time)
     for index, row in stock_em_hold_stock_df.iterrows():
         result.append({
             'symbol': row["股票代码"],
@@ -79,7 +80,7 @@ def get_stock_em_hold_stock_df():
             'market_percent': row["持股数量占发行股百分比"]
         })
     # return result
-    resu = {'code': 200, 'data': result, 'message': '成功'}
+    resu = {'code': 200, 'data': {'current_time': current_time, 'result': result}, 'message': '成功'}
     return json.dumps(resu, ensure_ascii=False)
 
 
