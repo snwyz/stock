@@ -96,6 +96,7 @@ def get_stock_em_hold_stock_df():
 @app.route('/get_em_add_stock_df')
 def get_em_add_stock_df():
     date = request.values.get('date')
+    current_time = time.strftime("%Y-%m-%d", time.localtime())
 
     stock_em_add_stock_df = ak.stock_em_hsgt_hold_stock(market="北向", indicator=date).head(50)
     result = []
@@ -108,7 +109,7 @@ def get_em_add_stock_df():
             'incHoldMoney': round(row["ShareSZ_Chg_One"]/100000000, 2),
         })
     # # return result
-    resu = {'code': 200, 'data': result, 'message': '成功'}
+    resu = {'code': 200, 'data': {'current_time': current_time, 'result': result}, 'message': '成功'}
     return json.dumps(resu, ensure_ascii=False)
 
 
