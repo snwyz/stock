@@ -70,6 +70,7 @@ def get_stock_em_hold_stock_df():
     # 获取最近的交易日
     year = time.strftime("%Y", time.localtime())
     current_time = time.strftime("%Y-%m-%d", time.localtime())
+    ts.set_token('605894af201d877ec9108ba2fc05a95ea580f744ed640d2aa449623b')
     pro = ts.pro_api()
     data = pro.query('trade_cal', start_date=year + '0101', is_open='1')
     trade_days = data['cal_date']
