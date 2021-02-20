@@ -4,15 +4,15 @@ import time
 import pandas as pd
 import numpy as np
 import akshare as ak
+import tushare as ts
 
-from flask import Flask
+from flask import Flask, request
 from pandas.io import json
 
 app = Flask(__name__)
 
+
 # 大盘实时数据
-
-
 @app.route('/get_stock_df')
 def get_stock_df():
     stock_df = ak.stock_zh_index_spot()
@@ -30,9 +30,9 @@ def get_stock_df():
     # return result
     resu = {'code': 200, 'data': result, 'message': '成功'}
     return json.dumps(resu, ensure_ascii=False)
+
+
 # 北向资金
-
-
 @app.route('/get_money_current')
 def get_money_current():
     realtime_flow_url = 'http://push2.eastmoney.com/api/qt/kamt.rtmin/get?fields1=f1,f3&fields2=f51,f52,f54,f56'
@@ -63,15 +63,23 @@ def get_money_current():
     resu = {'code': 200, 'data': {'list': result, 'current': current}, 'message': '成功'}
     return resu
 
-#北向资金持股排行
 
-
+# 北向资金持股排行
 @app.route('/get_stock_em_hold_stock_df')
 def get_stock_em_hold_stock_df():
-    stock_em_hold_stock_df = ak.stock_em_hsgt_stock_statistics(symbol="北向持股", start_date="20210218", end_date="20210218").head(50)
-    result = []
+    # 获取最近的交易日
+    year = time.strftime("%Y", time.localtime())
     current_time = time.strftime("%Y-%m-%d", time.localtime())
-    print(current_time)
+    pro = ts.pro_api()
+    data = pro.query('trade_cal', start_date=year + '0101', is_open='1')
+    trade_days = data['cal_date']
+    today = time.strftime("%Y%m%d", time.localtime())
+    while today not in trade_days.values:
+        today = str(int(today) - 1)
+
+    stock_em_hold_stock_df = ak.stock_em_hsgt_stock_statistics(symbol="北向持股", start_date=today,
+                                                                   end_date=today).head(50)
+    result = []
     for index, row in stock_em_hold_stock_df.iterrows():
         result.append({
             'symbol': row["股票代码"],
@@ -81,6 +89,26 @@ def get_stock_em_hold_stock_df():
         })
     # return result
     resu = {'code': 200, 'data': {'current_time': current_time, 'result': result}, 'message': '成功'}
+    return json.dumps(resu, ensure_ascii=False)
+
+
+# 北向资金增持排行
+@app.route('/get_em_add_stock_df')
+def get_em_add_stock_df():
+    date = request.values.get('date')
+
+    stock_em_add_stock_df = ak.stock_em_hsgt_hold_stock(market="北向", indicator=date).head(50)
+    result = []
+    print(stock_em_add_stock_df)
+    for index, row in stock_em_add_stock_df.iterrows():
+        result.append({
+            'symbol': row["SCode"],
+            'name': row["SName"],
+            'plate': row["HYName"],
+            'incHoldMoney': round(row["ShareSZ_Chg_One"]/100000000, 2),
+        })
+    # # return result
+    resu = {'code': 200, 'data': result, 'message': '成功'}
     return json.dumps(resu, ensure_ascii=False)
 
 
@@ -96,9 +124,8 @@ def get_money_stock():
         get_money_stock_message = get_money_stock_message + message
     return get_money_stock_message
 
+
 # 行业资金实时流入前10
-
-
 @app.route('/get_stock_sector_fund_flow_rank')
 def get_stock_sector_fund_flow_rank():
     stock_sector_fund_flow_rank_df = ak.stock_sector_fund_flow_rank(indicator="今日", sector_type="行业资金流").head(20)
